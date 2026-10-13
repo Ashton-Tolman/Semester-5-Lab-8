@@ -8,7 +8,7 @@
 
 ; Assembly source line config statements
 
-; CONFIG1
+//; CONFIG1
   CONFIG  FOSC = XT             ; Oscillator Selection bits (XT oscillator: Crystal/resonator on RA6/OSC2/CLKOUT and RA7/OSC1/CLKIN)
   CONFIG  WDTE = OFF            ; Watchdog Timer Enable bit (WDT disabled and can be enabled by SWDTEN bit of the WDTCON register)
   CONFIG  PWRTE = OFF           ; Power-up Timer Enable bit (PWRT disabled)
@@ -46,44 +46,44 @@ PSECT code,class=CODE,delta=2
 
 Setup:
     ; add device setup here
-    BSF  0x03, 06    ;
-    BSF  0x03, 05    ; Set bank 3 active
-    CLRF BAUDCTL     ; Clear baud rate control settings
-    BCF BAUDCTL,3    ; BRG16 = 0, 8-bit baud generator
+    BSF 0x03, 06	;
+    BSF 0x03, 05	; Set bank 3 active
+    CLRF BAUDCTL	; Clear baud rate control settings
+    BCF BAUDCTL,3	; BRG16 = 0, 8-bit baud generator
     
-    BSF  0x03, 06    ;
-    BCF  0x03, 5    ; Set bank 2 active
-    BSF  0x09, 1    ; Turn T1G-not function off
+    BSF 0x03, 06	;
+    BCF 0x03, 5    	; Set bank 2 active
+    BSF 0x09, 1		; Turn T1G-not function off
     
-    BCF  0x03, 06    ;
-    BSF  0x03, 05    ; Set bank 1 active 
-    CLRF TXSTA       ; Clear transmitter settings
-    BCF TXSTA,6      ; TX9 = 0, 8-bit transmission
-    BCF TXSTA,4      ; SYNC = 0, asynchronous mode
-    BSF TXSTA,2      ; BRGH = 1, high-speed baud rate
+    BCF 0x03, 06	;
+    BSF 0x03, 05	; Set bank 1 active 
+    MOVLW 0b00100100	;turn transmitter on, and asynchronus on with high speed,
+    MOVWF TXSTA		; and 8 bit data
     MOVLW 25	
-    MOVWF SPBRG      ; 9600 baud at FOSC = 4 MHz
+    MOVWF SPBRG		; 9600 baud at FOSC = 4 MHz
+    BSF TRISC,6		;set as asynchronous serial output
+    BSF TRISC,7		;set as asynchronous serial input
 		    
-    BCF  0x03, 06    ;
-    BCF  0x03, 05    ; Set bank 0 active
-    CLRF RCSTA       ; Clear receiver/serial port settings
-    BSF RCSTA,7      ; SPEN = 1, enable serial port
+    BCF 0x03, 06	;
+    BCF 0x03, 05	; Set bank 0 active
+    CLRF RCSTA		; Clear receiver/serial port settings
+    BSF RCSTA,7		; SPEN = 1, enable serial port
 		 
 		    
-    BCF  0x03, 06    ;
-    BSF  0x03, 05    ; Set bank 1 active 
-    BSF TXSTA,5      ; TXEN = 1, enable transmission
+    BCF 0x03, 06	;
+    BSF 0x03, 05	; Set bank 1 active 
+    BSF TXSTA,5		; TXEN = 1, enable transmission
     goto Main
     
 
 Main:
     ; Check EUSART transmit buffer
     BANKSEL PIR1
-    BTFSC PIR1,4     ; TXIF = 1 when TXREG is empty
+    BTFSS PIR1,4     ; TXIF = 1 when TXREG is empty
     goto $-1
     ; Send ASCII '$'
     BANKSEL TXREG
-    MOVLW 0x24
+    MOVLW 0x55
     MOVWF TXREG
     goto Main
 End
