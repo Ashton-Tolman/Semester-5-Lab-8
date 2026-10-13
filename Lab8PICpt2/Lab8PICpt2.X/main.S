@@ -1,6 +1,6 @@
 // Ashton Tolman
 // RCET3373
-// Lab8PICpt1
+// Lab8PICpt2
 // https://github.com/Ashton-Tolman/Semester-5-Lab-8.git
 // linker code:-Wl,-presetVect=0000h,-pisrVect=0004h,-pcode=0008h
 
@@ -57,12 +57,12 @@ Setup:
     
     BCF 0x03, 06	;
     BSF 0x03, 05	; Set bank 1 active 
-    MOVLW 0b00100100	;turn transmitter on, and asynchronus on with high speed,
+    MOVLW 0b00000100	; asynchronus on with high speed,
     MOVWF TXSTA		; and 8 bit data
     MOVLW 25	
     MOVWF SPBRG		; 9600 baud at FOSC = 4 MHz
-    BSF TRISC,6		;set as asynchronous serial output
-    BSF TRISC,7		;set as asynchronous serial input
+    BSF TRISC,6		; set as asynchronous serial output
+    BSF TRISC,7		; set as asynchronous serial input
 		    
     BCF 0x03, 06	;
     BCF 0x03, 05	; Set bank 0 active
@@ -73,6 +73,9 @@ Setup:
     BCF 0x03, 06	;
     BSF 0x03, 05	; Set bank 1 active 
     BSF TXSTA,5		; TXEN = 1, enable transmission
+    BSF PIE1,5		; Enable EUSART receive interrupt
+    BANKSEL RCSTA
+    BSF RCSTA,4		; CREN = 1, enable receive 
     goto Main
     
 
