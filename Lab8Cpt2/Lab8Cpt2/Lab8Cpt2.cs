@@ -12,10 +12,10 @@ namespace Lab8Cpt2
         }
 
         SerialPort _serialPort = new SerialPort();
-        void SerialPortSetup(string portName)
+        void SerialPortSetup()
         {
             _serialPort.Close();
-            _serialPort.PortName = portName;
+            _serialPort.PortName = "COM5";
             _serialPort.BaudRate = 9600;
             _serialPort.DataBits = 8;
             _serialPort.Parity = Parity.None;
@@ -31,13 +31,12 @@ namespace Lab8Cpt2
 
         }
 
-        void SerialSend(byte command, byte data)
+        void SerialSend()
         {
-            byte[] sender = { command, data };
 
             try
             {
-                _serialPort.Write(sender, 0, sender.Length);
+                _serialPort.Write("$");
 
             }
             catch (Exception ex)
@@ -93,7 +92,7 @@ namespace Lab8Cpt2
         {
             byte[] thingy = { 0xF0 };
             byte[] input = new byte[1];
-            SerialPortSetup(portName);
+            SerialPortSetup();
             SerialConnect();
             //flush rx buffer
             input = new byte[_serialPort.BytesToRead];
@@ -138,19 +137,22 @@ namespace Lab8Cpt2
 
         private void ConnectButton_Click(object sender, EventArgs e)
         {
-            SerialPortSetup(PortsComboBox.SelectedItem.ToString());
+            SerialPortSetup();
             SerialConnect();
         }
 
         private void SendButton_Click(object sender, EventArgs e)
         {
             //TestQyAtBoard();
-
+            SerialSend();
         }
 
         private void ReadButton_Click(object sender, EventArgs e)
         {
-            SerialRead();
+            foreach (byte b in SerialRead())
+            {
+                DataBitsTextBox.Text += b;
+            }
         }
 
         private void StatusTimer_Tick(object sender, EventArgs e)
@@ -178,7 +180,7 @@ namespace Lab8Cpt2
             if (byte.TryParse(DataBitsTextBox.Text, out byte result))
             {
                 byte qyAtData = byte.Parse(DataBitsTextBox.Text);
-                SerialSend(AN1Read(), qyAtData);
+                SerialSend();
             }
         }
 
@@ -215,6 +217,8 @@ namespace Lab8Cpt2
 
 
         }
+
+       
     }
 }
 

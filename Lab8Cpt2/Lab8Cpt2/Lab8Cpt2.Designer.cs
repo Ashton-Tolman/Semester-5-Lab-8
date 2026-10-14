@@ -93,7 +93,7 @@
             ExitButton.TabIndex = 5;
             ExitButton.Text = "E&xit";
             ExitButton.UseVisualStyleBackColor = true;
-            ExitButton.Click += this.ExitButton_Click;
+            ExitButton.Click += ExitButton_Click;
             // 
             // ConnectButton
             // 
@@ -103,7 +103,7 @@
             ConnectButton.TabIndex = 6;
             ConnectButton.Text = "&Connect";
             ConnectButton.UseVisualStyleBackColor = true;
-            ConnectButton.Click += this.ConnectButton_Click;
+            ConnectButton.Click += ConnectButton_Click;
             // 
             // ReadButton
             // 
@@ -113,7 +113,7 @@
             ReadButton.TabIndex = 7;
             ReadButton.Text = "&Read";
             ReadButton.UseVisualStyleBackColor = true;
-            ReadButton.Click += this.ReadButton_Click;
+            ReadButton.Click += ReadButton_Click;
             // 
             // SendButton
             // 
@@ -123,7 +123,7 @@
             SendButton.TabIndex = 8;
             SendButton.Text = "&Send";
             SendButton.UseVisualStyleBackColor = true;
-            SendButton.Click += this.SendButton_Click;
+            SendButton.Click += SendButton_Click;
             // 
             // statusStrip1
             // 
@@ -144,6 +144,7 @@
             // StatusTimer
             // 
             StatusTimer.Enabled = true;
+            StatusTimer.Tick += StatusTimer_Tick;
             // 
             // AnalogTimer
             // 
