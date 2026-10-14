@@ -166,7 +166,6 @@
             Controls.Add(ComListBox);
             Name = "Lab8Cpt2";
             Text = "Lab8Cpt2";
-            Load += this.Lab8Cpt2_Load;
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();
             ResumeLayout(false);
