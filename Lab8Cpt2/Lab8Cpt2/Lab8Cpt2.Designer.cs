@@ -33,7 +33,6 @@
             PortsComboBox = new ComboBox();
             SerialTextBox = new TextBox();
             DataBitsTextBox = new TextBox();
-            AN1CheckBox = new CheckBox();
             ExitButton = new Button();
             ConnectButton = new Button();
             ReadButton = new Button();
@@ -42,6 +41,9 @@
             StatusLabel = new ToolStripStatusLabel();
             StatusTimer = new System.Windows.Forms.Timer(components);
             AnalogTimer = new System.Windows.Forms.Timer(components);
+            ADCButton = new Button();
+            DeviceIDButton = new Button();
+            FramingErrorButton = new Button();
             statusStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -74,16 +76,6 @@
             DataBitsTextBox.Name = "DataBitsTextBox";
             DataBitsTextBox.Size = new Size(150, 31);
             DataBitsTextBox.TabIndex = 3;
-            // 
-            // AN1CheckBox
-            // 
-            AN1CheckBox.AutoSize = true;
-            AN1CheckBox.Location = new Point(12, 125);
-            AN1CheckBox.Name = "AN1CheckBox";
-            AN1CheckBox.Size = new Size(73, 29);
-            AN1CheckBox.TabIndex = 4;
-            AN1CheckBox.Text = "AN1";
-            AN1CheckBox.UseVisualStyleBackColor = true;
             // 
             // ExitButton
             // 
@@ -150,17 +142,49 @@
             // 
             AnalogTimer.Interval = 250;
             // 
+            // ADCButton
+            // 
+            ADCButton.Location = new Point(12, 125);
+            ADCButton.Name = "ADCButton";
+            ADCButton.Size = new Size(112, 34);
+            ADCButton.TabIndex = 10;
+            ADCButton.Text = "ADC";
+            ADCButton.UseVisualStyleBackColor = true;
+            ADCButton.Click += ADCButton_Click;
+            // 
+            // DeviceIDButton
+            // 
+            DeviceIDButton.Location = new Point(12, 165);
+            DeviceIDButton.Name = "DeviceIDButton";
+            DeviceIDButton.Size = new Size(112, 34);
+            DeviceIDButton.TabIndex = 11;
+            DeviceIDButton.Text = "Device ID";
+            DeviceIDButton.UseVisualStyleBackColor = true;
+            DeviceIDButton.Click += DeviceIDButton_Click;
+            // 
+            // FramingErrorButton
+            // 
+            FramingErrorButton.Location = new Point(12, 205);
+            FramingErrorButton.Name = "FramingErrorButton";
+            FramingErrorButton.Size = new Size(112, 34);
+            FramingErrorButton.TabIndex = 12;
+            FramingErrorButton.Text = "Framing Error";
+            FramingErrorButton.UseVisualStyleBackColor = true;
+            FramingErrorButton.Click += FramingErrorButton_Click;
+            // 
             // Lab8Cpt2
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(FramingErrorButton);
+            Controls.Add(DeviceIDButton);
+            Controls.Add(ADCButton);
             Controls.Add(statusStrip1);
             Controls.Add(SendButton);
             Controls.Add(ReadButton);
             Controls.Add(ConnectButton);
             Controls.Add(ExitButton);
-            Controls.Add(AN1CheckBox);
             Controls.Add(DataBitsTextBox);
             Controls.Add(SerialTextBox);
             Controls.Add(PortsComboBox);
@@ -179,7 +203,6 @@
         private ComboBox PortsComboBox;
         private TextBox SerialTextBox;
         private TextBox DataBitsTextBox;
-        private CheckBox AN1CheckBox;
         private Button ExitButton;
         private Button ConnectButton;
         private Button ReadButton;
@@ -188,5 +211,8 @@
         private ToolStripStatusLabel StatusLabel;
         private System.Windows.Forms.Timer StatusTimer;
         private System.Windows.Forms.Timer AnalogTimer;
+        private Button ADCButton;
+        private Button DeviceIDButton;
+        private Button FramingErrorButton;
     }
 }

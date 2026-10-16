@@ -12,10 +12,15 @@ namespace Lab8Cpt2
         }
 
         SerialPort _serialPort = new SerialPort();
-        void SerialPortSetup()
+        byte[] rxBuffer = new byte[10];    // bytes received so far
+        int rxCount = 0;                   // how many bytes are in rxBuffer
+        bool waiting = false;              // true while we wait for a reply
+        DateTime deadline;                 // when we give up waiting
+
+        void SerialPortSetup(string portName)
         {
             _serialPort.Close();
-            _serialPort.PortName = "COM5";
+            _serialPort.PortName = portName;
             _serialPort.BaudRate = 9600;
             _serialPort.DataBits = 8;
             _serialPort.Parity = Parity.None;
@@ -29,6 +34,27 @@ namespace Lab8Cpt2
             _serialPort.Close();
             _serialPort.Open();
 
+        }
+
+        void SendBytes(byte[] data)
+        {
+            if (_serialPort.IsOpen == false)
+            {
+                MessageBox.Show("Connect first.");
+                return;
+            }
+            if (waiting == true)
+            {
+                return;                               // still waiting on the last request
+            }
+
+            _serialPort.DiscardInBuffer();            // throw away old leftover bytes
+            rxCount = 0;                              // empty our receive buffer
+            _serialPort.Write(data, 0, data.Length);  // send the real byte values
+            AddToList("TX", data, data.Length, "");
+
+            waiting = true;
+            deadline = DateTime.Now.AddMilliseconds(500);   // wait up to 0.5 seconds
         }
 
         void SerialSend()
@@ -69,10 +95,7 @@ namespace Lab8Cpt2
         {
             foreach (string port in GetSerialPorts())
             {
-                if (IsQyAtBoard(port))
-                {
-                    PortsComboBox.Items.Add(port);
-                }
+                PortsComboBox.Items.Add(port);
             }
 
             if (PortsComboBox.Items.Count > 0)
@@ -81,51 +104,69 @@ namespace Lab8Cpt2
             }
         }
 
-        void TestQyAtBoard()
+        // Add a line: TX or RX, the bytes in hex, and a note
+        void AddToList(string direction, byte[] data, int count, string note)
         {
-            byte[] thingy = [0xF0];
-
-            _serialPort.Write(thingy, 0, 1);
+            string hex = "";
+            for (int i = 0; i < count; i++)
+            {
+                hex = hex + data[i].ToString("X2") + " ";   // each byte as 2 hex digits
+            }
+            ComListBox.Items.Add(direction + "  " + hex + " " + note);
+            ComListBox.TopIndex = ComListBox.Items.Count - 1;   // scroll to the newest line
         }
 
-        bool IsQyAtBoard(string portName)
+        // A full reply has arrived, so decode it
+        string Decode()
         {
-            byte[] thingy = { 0xF0 };
-            byte[] input = new byte[1];
-            SerialPortSetup();
-            SerialConnect();
-            //flush rx buffer
-            input = new byte[_serialPort.BytesToRead];
-            _serialPort.Read(input, 0, input.Length);
-
-            //request settings
-            _serialPort.Write(thingy, 0, thingy.Length);
-
-            //wait for reply
-            System.Threading.Thread.Sleep(100);
-
-            //read rx buffer
-            input = new byte[_serialPort.BytesToRead];
-            _serialPort.Read(input, 0, input.Length);
-
-            //disconnect
-            _serialPort.Close();
-
-            //test if Qy@ board
-            if (input.Length == 64 && input[58] == 81 && input[59] == 121 && input[60] == 64)
+            // ID reply: 24 49 02 33 75
+            if (rxBuffer[1] == 0x49)
             {
-                return true;
+                int id = rxBuffer[3] * 256 + rxBuffer[4];   // high byte first
+                return "Device ID = 0x" + id.ToString("X4");
             }
-            else
+            // ADC reply: 24 41 03 00 HH LL
+            if (rxBuffer[1] == 0x41)
             {
-                return false;
+                int adc = rxBuffer[4] * 256 + rxBuffer[5];  // 10-bit value, 0 to 1023
+                ADCButton.Text = "ADC: " + adc;
+                return "ADC = " + adc;
             }
+            // Error reply: 24 45 02 code 00
+            if (rxBuffer[1] == 0x45)
+            {
+                if (rxBuffer[3] == 1) return "FRAMING ERROR";
+                if (rxBuffer[3] == 2) return "OVERRUN ERROR";
+            }
+            return "Unknown reply";
         }
 
-        byte AN1Read()
+        void ForceAFramingError()
         {
-            byte command = (0x20);
-            return command;
+            if (_serialPort.IsOpen == false)
+            {
+                MessageBox.Show("Connect first.");
+                return;
+            }
+
+            // Switch to wrong baud
+            _serialPort.BaudRate = 4800;
+
+            // Send one byte
+            byte[] bad = { 0x00 };
+            _serialPort.Write(bad, 0, 1);
+            AddToList("TX", bad, 1, "Sent at 4800 to force FRAMING");
+
+            // Switch back immediately
+            _serialPort.BaudRate = 9600;
+
+            // Clear any garbage and wait
+            System.Threading.Thread.Sleep(20);
+            _serialPort.DiscardInBuffer();
+            rxCount = 0;
+
+            waiting = true;
+            deadline = DateTime.Now.AddMilliseconds(1000);
         }
 
 
@@ -137,13 +178,13 @@ namespace Lab8Cpt2
 
         private void ConnectButton_Click(object sender, EventArgs e)
         {
-            SerialPortSetup();
+            string portName = PortsComboBox.Text;
+            SerialPortSetup(portName);
             SerialConnect();
         }
 
         private void SendButton_Click(object sender, EventArgs e)
         {
-            //TestQyAtBoard();
             SerialSend();
         }
 
@@ -155,70 +196,73 @@ namespace Lab8Cpt2
             }
         }
 
+        // ---------- timer: runs every 20 ms, never blocks ----------
         private void StatusTimer_Tick(object sender, EventArgs e)
         {
-            string portName;
-            int rxBuffer, txBuffer;
+            string portName = "none";
+            int rxWaiting = 0;
+            int txWaiting = 0;
+
             if (_serialPort.IsOpen)
             {
+                // 1. Move any new bytes into rxBuffer
+                while (_serialPort.BytesToRead > 0 && rxCount < rxBuffer.Length)
+                {
+                    rxBuffer[rxCount] = (byte)_serialPort.ReadByte();
+                    rxCount++;
+                }
+
+                // 2. Is a whole packet here? Total length = 3 + the LENGTH byte (byte 2)
+                if (waiting == true && rxCount >= 3)
+                {
+                    int total = 3 + rxBuffer[2];
+                    if (rxCount >= total)
+                    {
+                        AddToList("RX", rxBuffer, total, Decode());
+                        rxCount = 0;
+                        waiting = false;
+                    }
+                }
+
+                // 3. Give up if we waited too long
+                if (waiting == true && DateTime.Now > deadline)
+                {
+                    ComListBox.Items.Add("TIMEOUT: no reply");
+                    ComListBox.TopIndex = ComListBox.Items.Count - 1;
+                    waiting = false;
+                }
                 portName = _serialPort.PortName;
-                rxBuffer = _serialPort.BytesToRead;
-                txBuffer = _serialPort.BytesToWrite;
-            }
-            else
-            {
-                portName = "none";
-                rxBuffer = 0;
-                txBuffer = 0;
+                rxWaiting = _serialPort.BytesToRead;
+                txWaiting = _serialPort.BytesToWrite;
             }
 
-            StatusLabel.Text = $"Port: {portName} tx: {txBuffer} rx: {rxBuffer}";
+            StatusLabel.Text = $"Port: {portName} tx:{txWaiting} rx:{rxWaiting}";
         }
+
 
         private void DataBitsTextBox_TextChanged(object sender, EventArgs e)
         {
             if (byte.TryParse(DataBitsTextBox.Text, out byte result))
             {
-                byte qyAtData = byte.Parse(DataBitsTextBox.Text);
+                byte Data = byte.Parse(DataBitsTextBox.Text);
                 SerialSend();
             }
         }
 
-        private void AN1CheckBox_CheckedChanged(object sender, EventArgs e)
+        private void ADCButton_Click(object sender, EventArgs e)
         {
-            if (AN1CheckBox.Checked)
-            {
-                AnalogTimer.Enabled = true;
-
-            }
-            else
-            {
-                AnalogTimer.Enabled = false;
-            }
+            SendBytes(new byte[] { 0x24, 0x41, 0x01, 0x00 });   // AN0 request
         }
 
-        private void AnalogTimer_Tick(object sender, EventArgs e)
+        private void DeviceIDButton_Click(object sender, EventArgs e)
         {
-            byte[] data;
-            int AN1Base10;
-
-            if (_serialPort.IsOpen)
-            {
-                //ComListBox.Items.Add(System.DateTime.Now.ToString("yyyy/MM/dd hh:mm:ss"));
-                System.Threading.Thread.Sleep(20);
-                data = SerialRead();
-                AN1Base10 = (data[0] << 2) + (data[1] >> 6);
-
-                ComListBox.Items.Add(AN1Base10);
-                ComListBox.SelectedIndex = ComListBox.Items.Count - 1;
-                ComListBox.ClearSelected();
-
-            }
-
-
+            SendBytes(new byte[] { 0x24, 0x49, 0x00 });          // Device ID request
         }
 
-       
+        private void FramingErrorButton_Click(object sender, EventArgs e)
+        {
+            ForceAFramingError();
+        }
     }
 }
 
